@@ -32,6 +32,7 @@ button.primary{background:var(--red);color:#fff}
 .hero.easy{background:#c77700}.hero.go{background:#14834b}
 .hero .st{font-size:30px;font-weight:700;line-height:1.2}
 .hero p{margin:6px 0 0;font-size:14px;line-height:1.6}
+.hero p.ref{font-size:12px;opacity:.85;margin-top:8px}
 .cards{display:grid;grid-template-columns:repeat(3,1fr);gap:8px;margin-bottom:18px}
 .card{background:var(--panel);border-radius:12px;padding:10px}
 .card .l{font-size:11px;color:var(--muted)}
@@ -61,7 +62,7 @@ td.name{text-align:left;white-space:normal;min-width:120px}
 .grid4{display:grid;grid-template-columns:repeat(2,1fr);gap:8px}
 details{margin-top:24px;font-size:12px;color:var(--muted);line-height:1.7}
 #setup,#err{background:var(--panel);border-radius:12px;padding:16px;margin:16px 0;line-height:1.7;font-size:14px}
-#setup input{width:100%;font:inherit;padding:10px;border-radius:8px;border:1px solid var(--line);background:var(--bg);color:var(--fg);margin:8px 0}
+#setup input{width:100%;font:inherit;font-size:16px;padding:10px;border-radius:8px;border:1px solid var(--line);background:var(--bg);color:var(--fg);margin:8px 0}
 .warnbar{background:var(--panel);border-left:4px solid var(--warn);padding:8px 10px;font-size:12px;margin-bottom:12px;border-radius:6px}
 .loading{color:var(--muted);font-size:14px;padding:40px 0;text-align:center}
 </style>
@@ -83,7 +84,7 @@ details{margin-top:24px;font-size:12px;color:var(--muted);line-height:1.7}
 
 <main id="main" hidden>
   <div id="warn" class="warnbar" hidden></div>
-  <section id="hero" class="hero"><div class="st" id="st"></div><p id="lede"></p></section>
+  <section id="hero" class="hero"><div class="st" id="st"></div><p id="lede"></p><p class="ref" id="ref"></p></section>
   <div class="cards">
     <div class="card"><div class="l">体力 CTL</div><div class="v num" id="ctl"></div><div class="s">42日平均</div></div>
     <div class="card"><div class="l">疲労 ATL</div><div class="v num" id="atl"></div><div class="s">7日平均</div></div>
@@ -128,7 +129,8 @@ details{margin-top:24px;font-size:12px;color:var(--muted);line-height:1.7}
   <details>
     <summary>計算方法と注意点</summary>
     <p>TSS = 走行時間(h) × IF² × 100、IF = NP ÷ FTP。NPはStravaの「加重平均パワー」を使っています。パワーのない日は hrTSS = 時間 × ((平均心拍−安静時心拍) ÷ (LTHR−安静時心拍))² × 100（LTHRはStravaの心拍ゾーン4の下限）。</p>
-    <p>体力 CTL はTSSの42日指数移動平均、疲労 ATL は7日指数移動平均、調子 TSB はその差。判定は TSB÷CTL が −30%未満で休養推奨、−10%未満で軽めに、それ以上で攻めてOK。回復見込みは、この先走らなかった場合の日数です。</p>
+    <p>体力 CTL はTSSの42日指数移動平均、疲労 ATL は7日指数移動平均、調子 TSB はその差。</p>
+    <p>判定は調子（TSB）の値で決めています。−25未満は休養推奨、−25〜−10は通常の練習OK、−10以上は攻めてOK。以前は調子÷体力の割合で判定していましたが、体力が低い時期は週末の長距離1本で毎日休養推奨になってしまうため、2026-11-26に変更しました。回復までの日数は、この先まったく走らなかった場合に調子が−10以上に戻るまでの見込みです。</p>
     <p>ライドの消費カロリーは、パワーのあるライドは仕事量（kJ）、ないものは時間と体重からの推定です。睡眠・安静時心拍・HRVはApple Watchを着けた日だけ記録されます。</p>
     <p>Stravaのデータは開くたび（1時間に1回まで）取り直し、7日より古いものは保存しません。</p>
     <p id="setinfo"></p>
@@ -214,11 +216,13 @@ function render() {
   $("upd").textContent = gen.getHours() + ":" + String(gen.getMinutes()).padStart(2, "0") + " 更新";
   $("warn").hidden = !D.warning; $("warn").textContent = D.warning || "";
   const t = D.today;
-  const txt = { rest: ["休養推奨", `疲労が体力を大きく上回っています。このまま休むと、あと${t.recover_days}日（${t.recover_date}ごろ）で調子が戻る見込みです。`],
-                easy: ["軽めに", `疲労が少し残っています。走るならZ2までの軽めに。休めばあと${t.recover_days}日で万全の見込みです。`],
+  const txt = { rest: ["休養推奨", `疲労がかなりたまっています（調子が−25未満）。このまま休むと、あと${t.recover_days}日（${t.recover_date}ごろ）で調子が戻る見込みです。`],
+                easy: ["通常の練習OK", `疲労は練習で積み上がる範囲です。Z2〜テンポ程度の通常の練習ならOK。強度を上げるのは、あと${t.recover_days}日ほど待ってから。`],
                 go: ["攻めてOK", "疲労は抜けています。強度の高いライドもOKな状態です。"] }[t.status];
-  $("hero").className = "hero " + t.status; $("st").textContent = txt[0] + "　" + sign(t.form_pct) + "%"; $("lede").textContent = txt[1];
-  $("ctl").textContent = fmt1(t.ctl); $("atl").textContent = fmt1(t.atl); $("tsb").textContent = (t.tsb > 0 ? "+" : "") + fmt1(t.tsb);
+  const tsbTxt = (t.tsb > 0 ? "+" : "") + fmt1(t.tsb);
+  $("hero").className = "hero " + t.status; $("st").textContent = txt[0] + "　TSB " + tsbTxt; $("lede").textContent = txt[1];
+  $("ref").textContent = "判定は調子（TSB）の値／参考：調子÷体力 " + sign(t.form_pct) + "%";
+  $("ctl").textContent = fmt1(t.ctl); $("atl").textContent = fmt1(t.atl); $("tsb").textContent = tsbTxt;
 
   $("factors").replaceChildren(...D.factors.map((f) => { const r = document.createElement("div"); r.className = "f";
     const a = document.createElement("div"); a.className = "n"; a.textContent = f.name;
