@@ -1,0 +1,269 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="apple-mobile-web-app-title" content="疲労ダッシュボード">
+<meta name="robots" content="noindex">
+<meta name="theme-color" content="#121417">
+<title>疲労ダッシュボード</title>
+<link rel="apple-touch-icon" href="icon.png">
+<link rel="icon" href="icon.png">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Barlow+Condensed:wght@500;700&family=Noto+Sans+JP:wght@400;500;700&display=swap" rel="stylesheet">
+<style>
+:root{--bg:#ffffff;--panel:#f4f4f5;--fg:#16181b;--muted:#6b7078;--line:#e3e4e6;--red:#e10600;--ok:#1a9a5a;--warn:#d98a00;--bad:#e10600;--c1:#e10600;--c2:#2563eb;--c3:#16a34a;--grid:#e9eaec}
+@media (prefers-color-scheme:dark){:root{--bg:#121417;--panel:#1c1f23;--fg:#f2f3f5;--muted:#9aa0a8;--line:#2b2f35;--ok:#34c37b;--warn:#f0a92a;--bad:#ff4a3d;--c1:#ff3b30;--c2:#5b8cff;--c3:#3fcf7f;--grid:#262a30}}
+*{box-sizing:border-box}
+html,body{margin:0;background:var(--bg);color:var(--fg);font-family:"Noto Sans JP",-apple-system,sans-serif;-webkit-text-size-adjust:100%}
+body{padding:calc(env(safe-area-inset-top) + 8px) 16px calc(env(safe-area-inset-bottom) + 32px)}
+.num{font-family:"Barlow Condensed",sans-serif;font-variant-numeric:tabular-nums}
+header{display:flex;align-items:center;justify-content:space-between;gap:8px;margin-bottom:10px}
+header h1{font-size:18px;margin:0;font-weight:700}
+header h1 b{color:var(--red)}
+#upd{font-size:12px;color:var(--muted)}
+button{font:inherit;border:0;border-radius:10px;padding:8px 12px;background:var(--panel);color:var(--fg)}
+button.primary{background:var(--red);color:#fff}
+.hero{border-radius:16px;padding:16px;color:#fff;background:var(--red);margin-bottom:14px}
+.hero.easy{background:#c77700}.hero.go{background:#14834b}
+.hero .st{font-size:30px;font-weight:700;line-height:1.2}
+.hero p{margin:6px 0 0;font-size:14px;line-height:1.6}
+.cards{display:grid;grid-template-columns:repeat(3,1fr);gap:8px;margin-bottom:18px}
+.card{background:var(--panel);border-radius:12px;padding:10px}
+.card .l{font-size:11px;color:var(--muted)}
+.card .v{font-size:30px;font-weight:700;line-height:1.1}
+.card .s{font-size:11px;color:var(--muted)}
+h2{font-size:16px;margin:22px 0 4px}
+.note{font-size:12px;color:var(--muted);margin:0 0 8px;line-height:1.6}
+.chart{position:relative;width:100%}
+.chart svg{display:block;width:100%;height:auto;touch-action:pan-y}
+.chart text{fill:var(--muted);font-size:11px;font-family:"Barlow Condensed",sans-serif}
+.info{font-size:12px;color:var(--fg);min-height:18px;margin-top:2px}
+.legend{display:flex;gap:12px;font-size:12px;color:var(--muted);margin-bottom:4px;flex-wrap:wrap}
+.legend i{display:inline-block;width:12px;height:3px;border-radius:2px;vertical-align:middle;margin-right:4px}
+.f{display:flex;align-items:flex-start;gap:10px;padding:10px 0;border-bottom:1px solid var(--line)}
+.f .n{flex:0 0 38%;font-size:13px}
+.f .v{flex:1;font-size:13px}
+.f .v small{display:block;color:var(--muted);font-size:11px;margin-top:2px}
+.f .b{flex:0 0 auto;font-size:12px;font-weight:700;padding:2px 8px;border-radius:999px;background:var(--panel)}
+.b.ok{color:var(--ok)}.b.warn{color:var(--warn)}.b.bad{color:var(--bad)}.b.none{color:var(--muted)}
+.tw{overflow-x:auto;-webkit-overflow-scrolling:touch}
+table{border-collapse:collapse;width:100%;font-size:12px}
+th,td{padding:7px 6px;border-bottom:1px solid var(--line);text-align:right;white-space:nowrap}
+th{color:var(--muted);font-weight:500}
+th:first-child,td:first-child{text-align:left}
+td.name{text-align:left;white-space:normal;min-width:120px}
+.neg{color:var(--bad)}
+.grid4{display:grid;grid-template-columns:repeat(2,1fr);gap:8px}
+details{margin-top:24px;font-size:12px;color:var(--muted);line-height:1.7}
+#setup,#err{background:var(--panel);border-radius:12px;padding:16px;margin:16px 0;line-height:1.7;font-size:14px}
+#setup input{width:100%;font:inherit;padding:10px;border-radius:8px;border:1px solid var(--line);background:var(--bg);color:var(--fg);margin:8px 0}
+.warnbar{background:var(--panel);border-left:4px solid var(--warn);padding:8px 10px;font-size:12px;margin-bottom:12px;border-radius:6px}
+.loading{color:var(--muted);font-size:14px;padding:40px 0;text-align:center}
+</style>
+</head>
+<body>
+<header>
+  <h1><b>●</b> 疲労ダッシュボード</h1>
+  <div><span id="upd"></span> <button id="reload" aria-label="更新">↻</button></div>
+</header>
+
+<div id="setup" hidden>
+  <b>はじめに合言葉を入れてください</b><br>
+  Cloudflare に設定した DASH_TOKEN と同じものです。このiPhoneに保存され、次からは聞かれません。
+  <input id="tok" type="password" autocomplete="off" placeholder="合言葉">
+  <button class="primary" id="save">保存して開く</button>
+</div>
+<div id="err" hidden></div>
+<div id="loading" class="loading" hidden>読み込み中…</div>
+
+<main id="main" hidden>
+  <div id="warn" class="warnbar" hidden></div>
+  <section id="hero" class="hero"><div class="st" id="st"></div><p id="lede"></p></section>
+  <div class="cards">
+    <div class="card"><div class="l">体力 CTL</div><div class="v num" id="ctl"></div><div class="s">42日平均</div></div>
+    <div class="card"><div class="l">疲労 ATL</div><div class="v num" id="atl"></div><div class="s">7日平均</div></div>
+    <div class="card"><div class="l">調子 TSB</div><div class="v num" id="tsb"></div><div class="s">体力−疲労</div></div>
+  </div>
+
+  <h2>コンディション要因</h2>
+  <div id="factors"></div>
+
+  <h2>体力・疲労・調子（直近90日）</h2>
+  <p class="note">負荷はTSS。パワーのあるライドはNP（Stravaの加重平均パワー）とFTPから、ないものは平均心拍から計算しています。</p>
+  <div class="legend"><span><i style="background:var(--c2)"></i>体力</span><span><i style="background:var(--c1)"></i>疲労</span><span><i style="background:var(--c3)"></i>調子</span></div>
+  <div class="chart" id="pmc"></div><div class="info" id="pmc-i"></div>
+
+  <h2>週ごとのTSS（直近12週）</h2>
+  <div class="chart" id="weekly"></div><div class="info" id="weekly-i"></div>
+
+  <h2>食事とカロリー収支</h2>
+  <p class="note">消費は「体重×30kcal（ライド以外）＋ライドの消費」で推定。最新の食事記録：<span id="flast"></span></p>
+  <div class="grid4">
+    <div class="card"><div class="l">平均摂取（28日）</div><div class="v num" id="fk"></div><div class="s">kcal/日</div></div>
+    <div class="card"><div class="l">平均収支（28日）</div><div class="v num" id="fb"></div><div class="s">kcal/日</div></div>
+    <div class="card"><div class="l">たんぱく質（28日）</div><div class="v num" id="fp"></div><div class="s">g/kg（目安1.2〜2.0）</div></div>
+    <div class="card"><div class="l">ライド日の炭水化物</div><div class="v num" id="fc"></div><div class="s">g/kg（目安6〜10）</div></div>
+  </div>
+  <h2>週ごとのカロリー収支（1日平均）</h2>
+  <div class="chart" id="fweek"></div><div class="info" id="fweek-i"></div>
+  <h2>炭水化物とたんぱく質（g/kg）</h2>
+  <p class="note">色の付いた列がライドの日。点線はたんぱく質の目安の下限 1.2 g/kg。</p>
+  <div class="legend"><span><i style="background:var(--c1)"></i>炭水化物</span><span><i style="background:var(--c2)"></i>たんぱく質</span></div>
+  <div class="chart" id="macro"></div><div class="info" id="macro-i"></div>
+  <h2>ライドの日の補給と回復</h2>
+  <p class="note">補給食をあすけんに入れていない日は、摂取が少なく出ます。2日後の調子は調子÷体力（0%に近いほど回復）。</p>
+  <div class="tw"><table><thead><tr><th>日付</th><th>摂取</th><th>消費</th><th>収支</th><th>前日炭水化物</th><th>当日炭水化物</th><th>2日後</th></tr></thead><tbody id="fuel"></tbody></table></div>
+
+  <h2>体重</h2>
+  <div class="chart" id="wt"></div><div class="info" id="wt-i"></div>
+
+  <h2>最近のアクティビティ</h2>
+  <div class="tw"><table><thead><tr><th>日付</th><th style="text-align:left">名前</th><th>km</th><th>獲得m</th><th>時間</th><th>NP</th><th>TSS</th></tr></thead><tbody id="recent"></tbody></table></div>
+
+  <details>
+    <summary>計算方法と注意点</summary>
+    <p>TSS = 走行時間(h) × IF² × 100、IF = NP ÷ FTP。NPはStravaの「加重平均パワー」を使っています。パワーのない日は hrTSS = 時間 × ((平均心拍−安静時心拍) ÷ (LTHR−安静時心拍))² × 100（LTHRはStravaの心拍ゾーン4の下限）。</p>
+    <p>体力 CTL はTSSの42日指数移動平均、疲労 ATL は7日指数移動平均、調子 TSB はその差。判定は TSB÷CTL が −30%未満で休養推奨、−10%未満で軽めに、それ以上で攻めてOK。回復見込みは、この先走らなかった場合の日数です。</p>
+    <p>ライドの消費カロリーは、パワーのあるライドは仕事量（kJ）、ないものは時間と体重からの推定です。睡眠・安静時心拍・HRVはApple Watchを着けた日だけ記録されます。</p>
+    <p>Stravaのデータは開くたび（1時間に1回まで）取り直し、7日より古いものは保存しません。</p>
+    <p id="setinfo"></p>
+    <p><button id="logout">合言葉を入れ直す</button></p>
+  </details>
+</main>
+
+<script>
+const API = "https://health-mcp.kenkenpa865.workers.dev/dash/data";
+const $ = (id) => document.getElementById(id);
+const S = (tag, attrs = {}, parent) => { const e = document.createElementNS("http://www.w3.org/2000/svg", tag); for (const k in attrs) e.setAttribute(k, attrs[k]); if (parent) parent.appendChild(e); return e; };
+const md = (s) => (+s.slice(5, 7)) + "/" + (+s.slice(8, 10));
+const sign = (v) => (v > 0 ? "+" : "") + v;
+const fmt1 = (v) => (v == null ? "—" : (+v).toFixed(1));
+const hm = (s) => Math.floor(s / 3600) + ":" + String(Math.round((s % 3600) / 60)).padStart(2, "0");
+let DATA = null;
+
+function token() { try { return localStorage.getItem("dashToken"); } catch { return null; } }
+
+async function load(force) {
+  const t = token();
+  if (!t) { $("setup").hidden = false; return; }
+  $("err").hidden = true;
+  if (!DATA) $("loading").hidden = false;
+  $("reload").disabled = true;
+  try {
+    const r = await fetch(API + (force ? "?force=1" : ""), { headers: { authorization: "Bearer " + t }, cache: "no-store" });
+    const j = await r.json().catch(() => ({}));
+    if (r.status === 401) { localStorage.removeItem("dashToken"); $("setup").hidden = false; throw new Error("合言葉が違います"); }
+    if (!r.ok) throw new Error(j.error || ("エラー " + r.status));
+    DATA = j; render();
+  } catch (e) {
+    $("err").textContent = "読み込めませんでした：" + e.message; $("err").hidden = false;
+  } finally { $("loading").hidden = true; $("reload").disabled = false; }
+}
+
+// ---- 汎用チャート ----
+function chart(id, opt) {
+  const box = $(id); box.replaceChildren();
+  const W = Math.max(300, box.clientWidth), H = opt.h || 200, m = { t: 8, r: 6, b: 20, l: 34 };
+  const svg = S("svg", { viewBox: `0 0 ${W} ${H}`, role: "img", "aria-label": opt.label }, box);
+  const n = opt.x.length;
+  const xs = (i) => m.l + (n <= 1 ? 0 : i * (W - m.l - m.r) / (n - 1));
+  const band = (W - m.l - m.r) / n;
+  const xb = (i) => m.l + i * band;
+  const lo = opt.min != null ? opt.min : 0, hi = opt.max;
+  const ys = (v) => m.t + (H - m.t - m.b) * (1 - (v - lo) / (hi - lo || 1));
+  const step = niceStep((hi - lo) / 4);
+  for (let v = Math.ceil(lo / step) * step; v <= hi; v += step) {
+    S("line", { x1: m.l, x2: W - m.r, y1: ys(v), y2: ys(v), stroke: "var(--grid)" }, svg);
+    S("text", { x: m.l - 4, y: ys(v) + 4, "text-anchor": "end" }, svg).textContent = Math.round(v);
+  }
+  if (lo < 0) S("line", { x1: m.l, x2: W - m.r, y1: ys(0), y2: ys(0), stroke: "var(--muted)", "stroke-width": 1 }, svg);
+  const every = Math.ceil(n / Math.floor((W - m.l) / 46));
+  opt.x.forEach((d, i) => { if ((n - 1 - i) % every) return; S("text", { x: opt.bars ? xb(i) + band / 2 : xs(i), y: H - 4, "text-anchor": opt.bars ? "middle" : i === n - 1 ? "end" : i === 0 ? "start" : "middle" }, svg).textContent = md(d); });
+  (opt.shade || []).forEach((i) => S("rect", { x: xs(i) - band / 2, width: band, y: m.t, height: H - m.t - m.b, fill: "var(--muted)", opacity: .15 }, svg));
+  (opt.refs || []).forEach((r) => S("line", { x1: m.l, x2: W - m.r, y1: ys(r.v), y2: ys(r.v), stroke: r.color, "stroke-dasharray": "4 4", opacity: .8 }, svg));
+  (opt.bars || []).forEach((b) => b.values.forEach((v, i) => { if (v == null) return; const y0 = ys(Math.max(0, lo)), y1 = ys(v); S("rect", { x: xb(i) + band * .15, width: band * .7, y: Math.min(y0, y1), height: Math.max(1, Math.abs(y1 - y0)), rx: 2, fill: typeof b.color === "function" ? b.color(v) : b.color, opacity: b.opacity || 1 }, svg); }));
+  (opt.lines || []).forEach((l) => {
+    let d = ""; l.values.forEach((v, i) => { if (v == null) return; d += (d ? "L" : "M") + xs(i).toFixed(1) + " " + ys(v).toFixed(1); });
+    S("path", { d, fill: "none", stroke: l.color, "stroke-width": 2.2, "stroke-linejoin": "round" }, svg);
+    if (l.dots) l.values.forEach((v, i) => { if (v != null) S("circle", { cx: xs(i), cy: ys(v), r: 2.6, fill: l.color }, svg); });
+  });
+  const guide = S("line", { y1: m.t, y2: H - m.b, stroke: "var(--muted)", opacity: 0 }, svg);
+  const pick = (ev) => {
+    const rc = svg.getBoundingClientRect(); const x = (ev.clientX - rc.left) * W / rc.width;
+    let i = opt.bars ? Math.floor((x - m.l) / band) : Math.round((x - m.l) / ((W - m.l - m.r) / Math.max(1, n - 1)));
+    i = Math.max(0, Math.min(n - 1, i));
+    const gx = opt.bars ? xb(i) + band / 2 : xs(i);
+    guide.setAttribute("x1", gx); guide.setAttribute("x2", gx); guide.setAttribute("opacity", .5);
+    $(id + "-i").textContent = opt.info(i);
+  };
+  svg.addEventListener("pointerdown", pick); svg.addEventListener("pointermove", pick);
+  $(id + "-i").textContent = opt.info(n - 1);
+}
+function niceStep(x) { const p = Math.pow(10, Math.floor(Math.log10(Math.max(x, 1e-9)))); const f = x / p; return (f <= 1 ? 1 : f <= 2 ? 2 : f <= 5 ? 5 : 10) * p; }
+const mx = (arr) => Math.max(...arr.filter((v) => v != null));
+const mn = (arr) => Math.min(...arr.filter((v) => v != null));
+
+function render() {
+  const D = DATA; $("main").hidden = false; $("setup").hidden = true;
+  const gen = new Date(D.generated_at);
+  $("upd").textContent = gen.getHours() + ":" + String(gen.getMinutes()).padStart(2, "0") + " 更新";
+  $("warn").hidden = !D.warning; $("warn").textContent = D.warning || "";
+  const t = D.today;
+  const txt = { rest: ["休養推奨", `疲労が体力を大きく上回っています。このまま休むと、あと${t.recover_days}日（${t.recover_date}ごろ）で調子が戻る見込みです。`],
+                easy: ["軽めに", `疲労が少し残っています。走るならZ2までの軽めに。休めばあと${t.recover_days}日で万全の見込みです。`],
+                go: ["攻めてOK", "疲労は抜けています。強度の高いライドもOKな状態です。"] }[t.status];
+  $("hero").className = "hero " + t.status; $("st").textContent = txt[0] + "　" + sign(t.form_pct) + "%"; $("lede").textContent = txt[1];
+  $("ctl").textContent = fmt1(t.ctl); $("atl").textContent = fmt1(t.atl); $("tsb").textContent = (t.tsb > 0 ? "+" : "") + fmt1(t.tsb);
+
+  $("factors").replaceChildren(...D.factors.map((f) => { const r = document.createElement("div"); r.className = "f";
+    const a = document.createElement("div"); a.className = "n"; a.textContent = f.name;
+    const b = document.createElement("div"); b.className = "v"; b.textContent = f.value; const s = document.createElement("small"); s.textContent = f.note || ""; b.append(s);
+    const c = document.createElement("div"); c.className = "b " + f.status; c.textContent = f.status_text; r.append(a, b, c); return r; }));
+
+  const P = D.pmc;
+  chart("pmc", { label: "体力・疲労・調子の推移", x: P.map((r) => r.date), h: 220, min: Math.min(0, mn(P.map((r) => r.tsb))), max: mx(P.flatMap((r) => [r.ctl, r.atl])) * 1.05,
+    bars: [{ values: P.map((r) => r.tsb), color: "var(--c3)", opacity: .5 }],
+    lines: [{ values: P.map((r) => r.ctl), color: "var(--c2)" }, { values: P.map((r) => r.atl), color: "var(--c1)" }],
+    info: (i) => `${md(P[i].date)}　体力 ${fmt1(P[i].ctl)}・疲労 ${fmt1(P[i].atl)}・調子 ${fmt1(P[i].tsb)}・当日TSS ${P[i].load}` });
+
+  const Wk = D.weekly;
+  chart("weekly", { label: "週ごとのTSS", x: Wk.map((w) => w.week), max: Math.max(50, mx(Wk.map((w) => w.tss))) * 1.1,
+    bars: [{ values: Wk.map((w) => w.tss), color: "var(--c1)" }],
+    info: (i) => `${md(Wk[i].week)}〜の週　TSS ${Wk[i].tss}・${Wk[i].km}km・獲得${Wk[i].elev}m・${Wk[i].hours}時間・${Wk[i].count}回` });
+
+  const F = D.food, fs = F.summary;
+  $("flast").textContent = fs ? md(fs.last_date) : "なし";
+  $("fk").textContent = fs ? fs.avg_kcal : "—"; $("fb").textContent = fs ? sign(fs.avg_balance) : "—";
+  $("fp").textContent = fs ? fmt1(fs.avg_protein_gkg) : "—"; $("fc").textContent = fs ? fmt1(fs.ride_carbs_gkg) : "—";
+  if (F.weekly.length) chart("fweek", { label: "週ごとのカロリー収支", x: F.weekly.map((w) => w.week), min: Math.min(0, mn(F.weekly.map((w) => w.avg_balance))) * 1.1, max: Math.max(100, mx(F.weekly.map((w) => w.avg_balance))) * 1.1,
+    bars: [{ values: F.weekly.map((w) => w.avg_balance), color: (v) => (v < 0 ? "var(--c1)" : "var(--c3)") }],
+    info: (i) => { const w = F.weekly[i]; return `${md(w.week)}〜の週（記録${w.days}日）摂取 ${w.avg_kcal}・消費 ${w.avg_burn}・収支 ${sign(w.avg_balance)} kcal・体重 ${w.avg_weight}kg`; } });
+  if (F.days.length) chart("macro", { label: "炭水化物とたんぱく質", x: F.days.map((r) => r.date), max: Math.max(2, mx(F.days.flatMap((r) => [r.carbs_gkg, r.protein_gkg]))) * 1.1,
+    shade: F.days.map((r, i) => (r.ride_day ? i : null)).filter((i) => i != null), refs: [{ v: 1.2, color: "var(--c2)" }],
+    lines: [{ values: F.days.map((r) => r.carbs_gkg), color: "var(--c1)", dots: true }, { values: F.days.map((r) => r.protein_gkg), color: "var(--c2)", dots: true }],
+    info: (i) => { const r = F.days[i]; return `${md(r.date)}${r.ride_day ? "（ライド）" : ""}　摂取 ${r.kcal}kcal・炭水化物 ${r.carbs_gkg ?? "—"}・たんぱく質 ${r.protein_gkg ?? "—"} g/kg`; } });
+  $("fuel").replaceChildren(...(F.ridefuel.length ? F.ridefuel : []).map((r) => row([md(r.date), r.kcal, r.burn, { t: sign(r.balance), c: r.balance < 0 ? "neg" : "" }, fmt1(r.prev_carbs_gkg), fmt1(r.carbs_gkg), r.form2_pct == null ? "—" : r.form2_pct + "%"])));
+
+  const Wt = D.weight;
+  if (Wt.length) chart("wt", { label: "体重の推移", x: Wt.map((r) => r.date), min: Math.floor(mn(Wt.map((r) => r.weight)) - 1), max: Math.ceil(mx(Wt.map((r) => r.weight)) + 1),
+    lines: [{ values: Wt.map((r) => r.weight), color: "var(--c2)", dots: true }], info: (i) => `${md(Wt[i].date)}　${Wt[i].weight} kg` });
+
+  $("recent").replaceChildren(...D.recent.map((a) => row([md(a.date), { t: a.name, c: "name" }, a.km, a.elev, hm(a.moving_s), a.np ?? "—", a.tss + (a.src === "パワー" ? "" : "*")])));
+  const st = D.settings; $("setinfo").textContent = `FTP ${st.ftp ?? "未設定"}W・LTHR ${st.lthr ?? "—"}bpm・安静時心拍 ${st.rest_hr}bpm（TSSの * は心拍から計算）`;
+}
+function row(cells) { const tr = document.createElement("tr"); cells.forEach((c) => { const td = document.createElement("td"); if (c && typeof c === "object") { td.textContent = c.t; if (c.c) td.className = c.c; } else td.textContent = c; tr.append(td); }); return tr; }
+
+$("save").onclick = () => { const v = $("tok").value.trim(); if (!v) return; localStorage.setItem("dashToken", v); $("setup").hidden = true; load(true); };
+$("reload").onclick = () => load(true);
+$("logout").onclick = () => { localStorage.removeItem("dashToken"); location.reload(); };
+let lastW = innerWidth; addEventListener("resize", () => { if (DATA && Math.abs(innerWidth - lastW) > 20) { lastW = innerWidth; render(); } });
+document.addEventListener("visibilitychange", () => { if (!document.hidden && DATA && Date.now() - Date.parse(DATA.generated_at) > 30 * 60 * 1000) load(false); });
+load(false);
+</script>
+</body>
+</html>
